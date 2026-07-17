@@ -1,0 +1,423 @@
+import pickle
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+from sklearn.utils.validation import check_is_fitted
+from skrub import DataOp
+
+from sempipes.inspection.pipeline_summary import PipelineSummary
+from sempipes.logging import get_logger
+from sempipes.operators.iterative_code_gen_base import IterativeCodeGenEstimator
+from sempipes.operators.sem_extract_features._shared import SYSTEM_PROMPT, build_output_columns_to_generate_llm
+
+logger = get_logger()
+
+
+def _get_code_feature_generation_message(
+    nl_prompt: str, columns_to_generate: list[str], column_descriptions, features_to_extract: list[dict]
+) -> str:
+    column_description_prompt = ""
+    for column, properties in column_descriptions.items():
+        column_description_prompt += (
+            f"Column {column}\n"
+            f" - Dtype: {properties['dtype']}\n"
+            f" - Modality: {properties['modality']}\n"
+            f" - Samples: {properties['samples']}\n"
+        )
+        if properties["modality"] == "text":
+            column_description_prompt += f" - Max words per value: {properties['max_words']}\n"
+            column_description_prompt += f" - Mean words per value: {properties['mean_words']}\n"
+        column_description_prompt += "\n"
+
+    task_prompt = f"""
+Your goal is to help a data scientist generate Python code for the feature generation/extraction from multi-modal data. You need to extract information from text, image, or audio data.
+You can use any models from `transformers` library (version 4.57.1) that can be used zero-shot, without additional fine-tuning. You are allowed to leverage modality-specific models for each modality. If you need to read images from disk, you can use the `PIL` library for that, you are not allowed to import the `os` module.
+
+IMPORTANT OVERRIDE: The user instructions below take absolute precedence over any library suggestions above. If the user explicitly prohibits a library (e.g. `transformers`), do NOT use it — ignore any conflicting defaults and use only the libraries the user permits.
+
+The data scientist wants you to take special care of the following: {nl_prompt}.
+
+You are provided the name of the features to extract, how to extract them, and from which columns within a pandas DataFrame `df`.
+
+Generate Python code with method `extract_features(df: pd.DataFrame) -> pd.DataFrame` for feature extraction using only the libraries permitted by the user instructions above.
+`extract_features` takes the original DataFrame `df`.
+`extract_features` returns the original dataframe with newly generated columns: {columns_to_generate}.
+
+Use the following columns as input for the feature extraction:
+
+{column_description_prompt}
+
+Here are special user instructions that you ALWAYS HAVE TO FOLLOW:
+    {nl_prompt}
+
+In the code, try to use the least loaded GPU if multiple GPUs are available. Prefer MPS (Metal Performance Shaders) for Apple Silicon devices if available, then CUDA, then CPU.
+
+"""
+    code_example = f"""
+Code formatting for each added column:
+```python
+import torch
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSeq2SeqLM,
+    AutoModelForQuestionAnswering,
+    AutoModelForTokenClassification,
+    pipeline,
+)
+
+
+def pick_device():
+    # Prefer MPS for Apple Silicon, then CUDA, then CPU
+    if torch.backends.mps.is_available():
+        print("Using MPS device")
+        return torch.device("mps")
+    elif torch.cuda.is_available():
+        # Find GPU with most free memory
+        free = []
+        for i in range(torch.cuda.device_count()):
+            f, t = torch.cuda.mem_get_info(i)
+            free.append((f, i))
+        free.sort(reverse=True)
+        _, idx = free[0]
+        print(f"Chosen GPU: {{idx}}")
+        return torch.device(f"cuda:{{idx}}")
+    else:
+        print("Using CPU")
+        return torch.device("cpu")
+
+device = pick_device()
+
+features_to_extract = {features_to_extract}
+
+def extract_features(df: pd.DataFrame) -> pd.DataFrame:
+    # Extract features using transformers and other libraries
+    # IMPORTANT: When creating a pipeline, handle the device parameter correctly:
+    # - For CUDA: use device=device.index (e.g., device=0 for cuda:0)
+    # - For MPS: use device=device (the device object itself, not device.index as MPS doesn't have index)
+    # - For CPU: use device=-1 or omit device parameter entirely (some versions prefer device=None)
+    # Example: pipe = pipeline(..., device=device if device.type != "cpu" else -1)
+    # Or: pipe = pipeline(..., device=0 if device.type == "cuda" else (device if device.type == "mps" else -1))
+    ...
+
+    # Add features to the original df as new columns
+    return df
+```end
+
+"""
+    post_message = """
+
+IMPORTANT:
+ - IF USER PROHIBITS FROM USING THE `transformers`, DO NOT USE IT AND USE ONLY ALLOWED LIBRARIES.
+ - Add comments to the code which explain the rationale for choosing a particular pretrained model.
+ - Make sure that the code feeds the data in batches to the GPU for efficiency.
+ - Use the `tqdm` library to show a progress bar for the feature extraction.
+
+IMPORTANT:
+ - Each codeblock must start with ```python and end with ```end! Otherwise, the code will not be executed correctly.
+ - The codeblock must be a valid Python code block, with no additional text
+ - Do not add any other text to the codeblock, only the code itself! If you need to add comments, add them inside the codeblock as properly formatted python comments.
+Codeblock:
+"""
+    return task_prompt + code_example + post_message
+
+
+def _execute_code_in_subprocess(input_path: Path, output_path: Path) -> dict[str, Any]:
+    """Execute code in a subprocess and return the output data."""
+    cmd = [
+        sys.executable,
+        "-c",
+        """import pickle
+import sys
+import traceback
+from pathlib import Path
+from sempipes.code_generation.safe_exec import safe_exec
+
+input_path = Path(sys.argv[1])
+output_path = Path(sys.argv[2])
+
+try:
+    with open(input_path, "rb") as f:
+        data = pickle.load(f)
+except Exception as e:
+    with open(output_path, "wb") as f:
+        pickle.dump({"success": False, "error": f"Failed to load input: {str(e)}", "traceback": traceback.format_exc()}, f)
+    sys.exit(1)
+
+try:
+    func = safe_exec(data["code"], "extract_features")
+    result = func(data["df"])
+    with open(output_path, "wb") as f:
+        pickle.dump({"success": True, "result": result}, f)
+except Exception as e:
+    try:
+        with open(output_path, "wb") as f:
+            pickle.dump({"success": False, "error": str(e), "traceback": traceback.format_exc()}, f)
+    except Exception as dump_error:
+        # If we can't even write the error, write to stderr as last resort
+        print(f"CRITICAL: Failed to write error output: {dump_error}", file=sys.stderr)
+        print(f"Original error: {e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+    sys.exit(1)
+""",
+        str(input_path),
+        str(output_path),
+    ]
+
+    # Use Popen to stream output in real-time
+    with subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,  # Merge stderr into stdout
+        universal_newlines=True,
+        bufsize=1,  # Line buffered
+    ) as process:
+        # Stream output line by line
+        if process.stdout is not None:
+            for line in process.stdout:
+                print(line, end="", flush=True)
+        result = subprocess.run(cmd, capture_output=True, check=False, text=True)
+
+        # Check if output file exists and has content
+        if not output_path.exists() or output_path.stat().st_size == 0:
+            error_msg = "Subprocess crashed before writing output file."
+            if result.stderr:
+                error_msg += f"\nSubprocess stderr:\n{result.stderr}"
+            if result.stdout:
+                error_msg += f"\nSubprocess stdout:\n{result.stdout}"
+            raise RuntimeError(error_msg)
+
+        # Wait for process to complete and get return code
+        _return_code = process.wait()
+
+    with open(output_path, "rb") as f:
+        return pickle.load(f)
+
+
+# This is slow, but necessary to avoid that erroneous torch code poisons the current CUDA context.
+# For large datasets, it might make sense to use shared memory instead of serializing data to disk.
+def _execute_in_subprocess(code_to_execute: str, df_sample: pd.DataFrame) -> pd.DataFrame:
+    """
+    Execute feature extraction code in a separate subprocess to isolate CUDA context failures.
+    Streams console output from the subprocess to the invoking process in real-time.
+    """
+    with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".pkl") as input_file:
+        input_path = Path(input_file.name)
+        pickle.dump({"code": code_to_execute, "df": df_sample}, input_file)
+
+    with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".pkl") as output_file:
+        output_path = Path(output_file.name)
+
+    try:
+        output_data = _execute_code_in_subprocess(input_path, output_path)
+
+        if not output_data.get("success", False):
+            error_msg = f"Feature extraction failed in subprocess: {output_data.get('error', 'Unknown error')}\n"
+            error_msg += f"{output_data.get('traceback', '')}"
+            raise RuntimeError(error_msg)
+
+        return output_data["result"]
+
+    finally:
+        input_path.unlink(missing_ok=True)
+        output_path.unlink(missing_ok=True)
+
+
+def _validate_in_subprocess(
+    df: pd.DataFrame, code_to_execute: str, generated_columns: list[str], print_code_to_console: bool
+) -> None:
+    df_sample = df.head(50).copy(deep=True)
+
+    if print_code_to_console:
+        print("#################### Trying to execute code:")
+        print(code_to_execute)
+        print("#" * 80)
+
+    # Execute in subprocess to isolate potential CUDA context failures
+    extracted_sample = _execute_in_subprocess(code_to_execute, df_sample)
+
+    expected_columns = generated_columns + list(df.columns)
+
+    assert all(
+        expected_column in extracted_sample.columns for expected_column in expected_columns
+    ), f"The returned DataFrame does not contain all required columns. Expected: {expected_columns}. Actual: {list(extracted_sample.columns)} "
+
+    assert len(extracted_sample) == len(df_sample), (
+        f"Feature extraction must preserve row count. "
+        f"Expected {len(df_sample)} rows, got {len(extracted_sample)}."
+    )
+    assert extracted_sample.columns.is_unique, (
+        f"Feature extraction must return unique column names. "
+        f"Duplicates: {extracted_sample.columns[extracted_sample.columns.duplicated()].tolist()}"
+    )
+
+    logger.debug("Code executed successfully on a sample dataframe.")
+
+
+def _describe_column(column: pd.Series):
+    column_description = {
+        "dtype": column.dtype,
+        "modality": "text",
+        "samples": column.sample(n=10, random_state=42).tolist(),
+    }
+
+    sample_of_column = column.sample(frac=0.2, random_state=42)
+    if (
+        pd.api.types.is_string_dtype(sample_of_column)
+        and sample_of_column.str.endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif"), na=False).all()
+    ):
+        column_description["modality"] = "image"
+    elif (
+        pd.api.types.is_string_dtype(sample_of_column)
+        and sample_of_column.str.endswith((".wav", ".mp3", ".flac", ".aac", ".ogg"), na=False).all()
+    ):
+        column_description["modality"] = "audio"
+
+    if column_description["modality"] == "text":
+        # Remove NaN values for processing
+        clean_col = column.dropna()
+        # Compute number of words per value
+        word_counts = clean_col.astype(str).apply(lambda x: len(x.split(" ")))
+        column_description["max_words"] = word_counts.max() if not word_counts.empty else 0
+        column_description["mean_words"] = word_counts.mean() if not word_counts.empty else 0
+
+    return column_description
+
+
+class CodeBasedFeatureExtractor(IterativeCodeGenEstimator):  # pylint: disable=too-many-ancestors
+    _SYSTEM_PROMPT = SYSTEM_PROMPT
+
+    def __init__(
+        self,
+        nl_prompt: str,
+        input_columns: list[str],
+        output_columns: dict[str, str] | None,
+        _pipeline_summary: PipelineSummary | None | DataOp = None,
+        _prefitted_state: dict[str, Any] | DataOp | None = None,
+        _memory: list[dict[str, Any]] | DataOp | None = None,
+        _inspirations: list[dict[str, Any]] | DataOp | None = None,
+        print_code_to_console: bool = False,
+    ) -> None:
+        super().__init__(nl_prompt, _pipeline_summary, _prefitted_state, _memory, _inspirations)
+        self.input_columns = input_columns
+        self.output_columns_not_given = output_columns is None
+        self.output_columns = {} if output_columns is None else output_columns
+        self.print_code_to_console = print_code_to_console
+
+    def empty_state(self):
+        state = {
+            "generated_code": """
+def extract_features(df: pd.DataFrame) -> pd.DataFrame:
+    return df
+"""
+        }
+
+        if self.output_columns_not_given:
+            state["generated_features"] = [
+                {"feature_name": "", "feature_prompt": self.nl_prompt, "input_columns": self.input_columns}
+            ]
+
+        return state
+
+    def _load_prefitted_state(self) -> bool:
+        if self._prefitted_state is not None:
+            self.generated_code_ = self._prefitted_state["generated_code"]
+            if "generated_features" in self._prefitted_state:
+                self.output_columns = self._prefitted_state["generated_features"]
+            return True
+        return False
+
+    def state_after_fit(self):
+        state = {"generated_code": self.generated_code_}
+        if self.output_columns_not_given:
+            state["generated_features"] = self.output_columns
+
+        return state
+
+    def _memory_preamble_messages(self) -> list[dict[str, str]]:
+        return [
+            {
+                "role": "user",
+                "content": """
+                IMPORTANT: Try to generate code that extracts better features for the downstream model. Here are some things that you can try:
+
+                If user allows you to use the `transformers` library, you can try to use it to extract features:
+                    - Try to use a pretrained model specialized for the domain of the data.
+                    - Try different variants of pretrained models for the feature extraction.
+                    - Adjust the hyperparameters of previously chosen pretrained models for the feature extraction.
+                    - Try models with a larger maximum sequence length.
+                    - Try models with a larger number of parameters.
+
+                If user prohibits you from using the `transformers` library:
+                    - Use advanced regex patterns with named groups, lookaheads/lookbehinds, and pattern combinations to extract structured information.
+                    - Apply domain-specific text processing techniques (e.g., keyword extraction, n-gram analysis, TF-IDF, character-level features).
+                    - Leverage pandas string methods (`.str.extract()`, `.str.contains()`, `.str.findall()`) for efficient pattern matching.
+                    - Extract statistical features from text (word counts, character counts, punctuation density, capitalization patterns).
+                    - Use rule-based feature engineering based on domain knowledge (e.g., date formats, email patterns, phone numbers, URLs).
+                    - Apply string similarity metrics (Levenshtein distance, Jaccard similarity) when comparing text values.
+                    - Create composite features by combining multiple extraction strategies and validate them against the feature requirements.
+                    - Add detailed comments explaining the extraction logic and why each pattern or rule was chosen.
+                    - If data is multi-lingual, try to have a list of multilingual synonyms or other techniques that DO NOT take too much time to compute.
+                    - Try to analyze the data and understand the patterns and use them to extract features.
+
+                Below is a history of the code that has been generated and executed so far, together with the performance of the model.
+
+                IMPORTANT: Explain your reasoning for the code changes you made in comments of the code.
+                """,
+            }
+        ]
+
+    def _build_error_feedback_message(self, code: str, error: Exception) -> list[dict[str, str]]:
+        return [
+            {"role": "assistant", "content": code},
+            {
+                "role": "user",
+                "content": (
+                    f"Code execution failed with error: {type(error)} {error}.\n "
+                    f"Remember: Each codeblock must start with ```python and end with ```end!\n"
+                    f"Code: ```python{code}```\n Generate next feature (fixing error?):\n```python\n"
+                ),
+            },
+        ]
+
+    def _try_to_execute(self, code, df, generated_columns, print_code_to_console):  # pylint: disable=arguments-differ
+        _validate_in_subprocess(df, code, generated_columns, print_code_to_console)
+
+    def fit(self, df: pd.DataFrame, y=None):  # pylint: disable=unused-argument
+        if self._load_prefitted_state():
+            return self
+
+        if self.output_columns == {}:
+            _, self.output_columns = build_output_columns_to_generate_llm(df, self.input_columns, self.nl_prompt)
+
+        logger.info(f"sempipes.sem_extract_features('{self.input_columns}', '{list(self.output_columns.keys())}')")
+
+        column_descriptions = {column: _describe_column(df[column]) for column in self.input_columns}
+
+        features_to_extract = []
+        for new_feature, prompt in self.output_columns.items():
+            features_to_extract.append(
+                {"feature_name": new_feature, "feature_prompt": prompt, "input_columns": self.input_columns}
+            )
+
+        prompt = _get_code_feature_generation_message(
+            nl_prompt=self.nl_prompt,
+            columns_to_generate=list(self.output_columns.keys()),
+            column_descriptions=column_descriptions,
+            features_to_extract=features_to_extract,
+        )
+
+        self._iterative_code_generation(df, list(self.output_columns.keys()), self.print_code_to_console, prompt=prompt)
+
+        return self
+
+    def transform(self, df):
+        check_is_fitted(self, "generated_code_")
+
+        logger.info(f"Extracting features from {len(df)} rows")
+        input_df = df.copy(deep=True).reset_index(drop=True)
+        df_with_features = _execute_in_subprocess(self.generated_code_, input_df)
+        return df_with_features.reset_index(drop=True)

@@ -1,0 +1,103 @@
+[project]
+name = "sempipes"
+version = "0.0.1"
+description = "Semantic data operators for ML pipelines"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+authors = [
+    {name = "X", email = "x"},
+    {name = "Y", email = "y"}
+]
+dynamic = ["dependencies"]
+
+[tool.poetry.dependencies]
+# Core dependencies for pipeline operations
+skrub = "^0.6.2"
+plotly = "^6.3.0"
+graphviz = "^0.21"
+litellm = "^1.76.1"
+networkx = "^3.5"
+python-dotenv = "^1.1.1"
+tqdm = "^4.67.1"
+torch = "^2.9.0"  # Updated to 2.9.x for compatibility
+transformers = "^4.57.1"
+dataclasses-json = "^0.6.7"
+scipy = "^1.16.3"
+logging = "^0.4.9.6"
+sdv = "^1.29.1"
+# Dependencies required by code_generation/safe_exec.py
+autogluon = "^1.5.0"
+soundfile = "^0.13.0"
+torchaudio = "^2.9.0"  # Must match torch version
+unidecode = "^1.4.0"
+scikit-learn = "^1.7.0"
+mabwiser = "2.7.4"
+setuptools = "^82.0.1"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.17.1"
+ruff = "^0.7.2"
+pre-commit = "^4.0.1"
+pylint = "^3.3.8"
+pytest = "^8.3.3"
+jupyter = "^1.1.1"
+lightgbm = "^4.6.0"
+xgboost = { version = "^3.0.5", python = ">=3.10,<3.13" }
+catboost = "^1.2.8"
+kagglehub = "^0.3.13"
+pydot = "^4.0.1"
+h5py = "^3.14.0"
+fastai = "^2.8.4"
+radon = "^6.0.1"
+scanpy = "^1.11.4"
+harmonypy = "^0.0.10"
+scib = "^1.1.7"
+scib-metrics = "^0.5.7"
+interpret = "^0.2.7"
+sentence-transformers = "^5.1.2"
+tabpfn = "^6.0.5"
+# open-clip-torch removed: conflicts with autogluon's timm requirement
+# tensorflow removed: too slow to import (30+ seconds), breaks interactive use
+# Should be imported conditionally in safe_exec.py if needed
+fancyimpute = "^0.7.0"
+duckdb = "^1.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py312"
+exclude = [
+    "experiments/tmdb_box_office_prediction/kaggle3.py",
+    "experiments/sigmod/sempipes_sustech/",
+]
+
+[tool.ruff.lint]
+# Select a minimal set of rules
+select = [
+    "F",
+    "E",
+    "I",
+]
+
+ignore = [
+    "E501",  # Line too long
+    "F401"   # Unused import, cannot configure this for `import sempipes` only
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+docstring-code-format = false
+indent-style = "space"
+line-ending = "auto"
+
+[tool.ruff.lint.per-file-ignores]
+"**/{docs}/*" = ["ALL"]
+"**__init__.py" = ["ALL"]
+"experiments/single_cell_analysis/aide_qr.py" = ["ALL"]
