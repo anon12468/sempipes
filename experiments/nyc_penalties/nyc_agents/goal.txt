@@ -1,0 +1,61 @@
+You are given NYC parking-violation aggregate data.
+
+Goal:
+Predict the number of parking violations in 2023 for each
+(street_name, violation_type) pair, using 2022 data and additional augmentation tables.
+
+Important runtime requirement:
+2023 files are available during development. Design the pipeline so the user can provide test/eval file paths posthoc.
+
+Core files (root folder):
+  violations_per_street_2022.csv
+  (2023 files are NOT present at development time)
+
+Core schema:
+  Street Name,	Violation Description,	violation_count
+
+Task definition:
+- Use 2022 records as the primary training signal.
+- Build a model that predicts future counts for the same key space: (street_name, violation_type).
+- Use datasets in corpus/ for feature augmentation (joins, enrichments, external signals).
+
+Data usage rules:
+- Do not require 2023 target files to run training or inference.
+- Do not leak future target counts into features.
+- You may leverage data corpus/ folder. This would require data discovery.
+
+Required script behavior:
+- Accept configurable file paths (CLI args or env vars), at minimum:
+  --train-path (default: violations_per_street_2022.csv)
+  --test-path (optional; user provides later)
+- If test-path is provided, generate predictions for that file.
+- Use part of training data from 2022 as evaluation set.
+
+Test/eval file schema:
+- The test/eval file uses the same core schema (Street Name, Violation Description,
+  violation_count), but violation_count is optional:
+  - keys-only (no violation_count): pure prediction; emit submission.csv.
+  - keys + violation_count: the column is the ground truth, used only for scoring
+    (report RMSE); it must never be read as a feature.
+- The test/eval file defines its own key space and may contain (street_name,
+  violation_type) pairs not present in 2022; predict for every row it contains.
+
+Expected output:
+- Generate a CSV named submission.csv with columns:
+  street_name, violation_type, predicted_count
+- predicted_count must be numeric (non-negative; clipping/rounding is allowed if justified).
+
+Metric:
+- The only metric is RMSE: optimize for it and rank results by it.
+- RMSE is computed un-weighted over all rows of the eval file.
+
+Validation:
+- During development, use only 2022-based validation (e.g., grouped hold out / pseudo-time split).
+- Report RMSE for development validation.
+- When user supplies eval-path posthoc, also report RMSE on that dataset.
+- Report how many key pairs in test/eval were unseen in training and how those were handled.
+
+Objective:
+- Minimize RMSE for future counts per (street_name, violation_type),
+  while keeping the pipeline path-configurable and reusable.
+

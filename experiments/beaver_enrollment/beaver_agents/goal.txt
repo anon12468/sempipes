@@ -1,0 +1,30 @@
+You are given institutional course and catalog data maintained by an academic IT data warehouse.
+Tables are split into a training folder (historical terms) and a held-out test folder (future terms).
+Only the training folder is available while you build the solution.
+
+Task: For each course offering per term, predict whether it will have high
+enrollment (yes or no) relative to other courses in the same department and term (top quartile among
+offerings with positive enrollment).
+
+Data layout:
+  TRAIN_DATA_DIR — training tables (available now) in train
+  TEST_DATA_DIR — held-out test tables (placeholder; not available yet), default None
+
+Supervised labels for training:
+  gold_enrollment_train.csv in the train folder (columns: TERM_CODE, SUBJECT_ID_SORT, HIGH_ENROLLMENT)
+
+Prediction keys: TERM_CODE, SUBJECT_ID_SORT.
+Target column: HIGH_ENROLLMENT (Y or N).
+
+Training phase (now):
+- Train and validate using TRAIN_DATA_DIR and gold_enrollment_train.csv only.
+- You may reuse train tables to sanity-check the prediction path (e.g. predict on train rows).
+- Do not read or load any held-out test directory during training.
+
+Gold files list exactly the (TERM_CODE, SUBJECT_ID_SORT) keys in each split subject summary. Predict one
+row per test summary row. 
+
+Evaluation:
+- Development metric: macro F1 on a time-based validation slice within train (e.g. latest train years are held out).
+- Benchmark metric on the future test split is computed externally after training completes.
+
