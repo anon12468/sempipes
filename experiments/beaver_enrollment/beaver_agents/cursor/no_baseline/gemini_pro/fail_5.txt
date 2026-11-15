@@ -1,0 +1,39 @@
+Traceback (most recent call last):
+  File "/Users/USER/BEAVER_data/train.py", line 7, in <module>
+    from imblearn.over_sampling import SMOTE
+ModuleNotFoundError: No module named 'imblearn'
+(sempipes-py3.12) (base) user@host BEAVER_data % pip install imblearn
+Collecting imblearn
+  Using cached imblearn-0.0-py2.py3-none-any.whl.metadata (355 bytes)
+Collecting imbalanced-learn (from imblearn)
+  Downloading imbalanced_learn-0.14.2-py3-none-any.whl.metadata (8.9 kB)
+Requirement already satisfied: numpy<3,>=1.25.2 in /Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages (from imbalanced-learn->imblearn) (2.1.3)
+Requirement already satisfied: scipy<2,>=1.11.4 in /Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages (from imbalanced-learn->imblearn) (1.16.3)
+Requirement already satisfied: scikit-learn<2,>=1.4.2 in /Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages (from imbalanced-learn->imblearn) (1.7.2)
+Collecting sklearn-compat<0.2,>=0.1.6 (from imbalanced-learn->imblearn)
+  Downloading sklearn_compat-0.1.6-py3-none-any.whl.metadata (22 kB)
+Requirement already satisfied: joblib<2,>=1.2.0 in /Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages (from imbalanced-learn->imblearn) (1.5.3)
+Requirement already satisfied: threadpoolctl<4,>=2.0.0 in /Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages (from imbalanced-learn->imblearn) (3.6.0)
+Using cached imblearn-0.0-py2.py3-none-any.whl (1.9 kB)
+Downloading imbalanced_learn-0.14.2-py3-none-any.whl (236 kB)
+Downloading sklearn_compat-0.1.6-py3-none-any.whl (22 kB)
+Installing collected packages: sklearn-compat, imbalanced-learn, imblearn
+Successfully installed imbalanced-learn-0.14.2 imblearn-0.0 sklearn-compat-0.1.6
+(sempipes-py3.12) (base) user@host BEAVER_data % python train.py     
+Loading and preprocessing data...
+Traceback (most recent call last):
+  File "/Users/USER/BEAVER_data/train.py", line 177, in <module>
+    df = load_and_preprocess_data()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/BEAVER_data/train.py", line 44, in load_and_preprocess_data
+    df_agg = df_master.groupby(['TERM_CODE', 'MASTER_SUBJECT_ID_SORT']).agg(agg_funcs).reset_index()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/pandas/core/frame.py", line 9210, in groupby
+    return DataFrameGroupBy(
+           ^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/pandas/core/groupby/groupby.py", line 1331, in __init__
+    grouper, exclusions, obj = get_grouper(
+                               ^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/pandas/core/groupby/grouper.py", line 1038, in get_grouper
+    raise ValueError(f"Grouper for '{name}' not 1-dimensional")
+ValueError: Grouper for 'MASTER_SUBJECT_ID_SORT' not 1-dimensional

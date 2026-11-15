@@ -1,0 +1,55 @@
+Loading data from table_splits/train...
+Data loaded successfully.
+Merging and preprocessing data...
+Data merged and preprocessed.
+Training final model on 421508 samples.
+Creating features...
+Features created.
+Training model...
+Model trained.
+Final model trained.
+\n--- Predicting on /Users/USER/BEAVER/test/gold_enrollment_test.csv ---
+Found 'HIGH_ENROLLMENT' column in test file. Will calculate F1 score.
+Creating features...
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+/Users/USER/BEAVER_data/main.py:107: FutureWarning: The behavior of Index.insert with object-dtype is deprecated, in a future version this will return an object-dtype Index instead of inferring a non-object dtype. To retain the old behavior, do `idx.insert(loc, item).infer_objects(copy=False)`
+  dummies = pd.get_dummies(df_copy[col], prefix=col, dummy_na=True)
+Features created.
+Traceback (most recent call last):
+  File "/Users/USER/BEAVER_data/main.py", line 196, in <module>
+    predictions = model.predict(X_test)
+                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/ensemble/_forest.py", line 903, in predict
+    proba = self.predict_proba(X)
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/ensemble/_forest.py", line 945, in predict_proba
+    X = self._validate_X_predict(X)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/ensemble/_forest.py", line 637, in _validate_X_predict
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/validation.py", line 2954, in validate_data
+    out = check_array(X, input_name="X", **check_params)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/validation.py", line 1128, in check_array
+    raise ValueError(
+ValueError: Found array with 0 sample(s) (shape=(0, 105)) while a minimum of 1 is required by RandomForestClassifier.

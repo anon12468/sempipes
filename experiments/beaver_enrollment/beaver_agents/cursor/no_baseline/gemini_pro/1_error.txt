@@ -1,0 +1,39 @@
+Increase the number of iterations to improve the convergence (max_iter=2000).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+Macro F1 Score on the validation set: 0.7674091864317838
+Traceback (most recent call last):
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/_encode.py", line 235, in _encode
+    return _map_to_integer(values, uniques)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/_encode.py", line 174, in _map_to_integer
+    return xp.asarray([table[v] for v in values], device=device(values))
+                       ~~~~~^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/_encode.py", line 167, in __missing__
+    raise KeyError(key)
+KeyError: '2024JA'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/USER/BEAVER_data/enhanced_model.py", line 122, in <module>
+    print(predict_and_evaluate(model, '/Users/USER/BEAVER/test', '/Users/USER/BEAVER/test/gold_enrollment_test.csv'))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/BEAVER_data/enhanced_model.py", line 98, in predict_and_evaluate
+    test_data['TERM_CODE_encoded'] = le.transform(test_data['TERM_CODE'])
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/preprocessing/_label.py", line 134, in transform
+    return _encode(y, uniques=self.classes_)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/_encode.py", line 237, in _encode
+    raise ValueError(f"y contains previously unseen labels: {e}")
+ValueError: y contains previously unseen labels: '2024JA'

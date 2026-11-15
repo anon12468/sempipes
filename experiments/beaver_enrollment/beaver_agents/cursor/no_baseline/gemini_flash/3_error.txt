@@ -1,0 +1,59 @@
+Gold Enrollment Data Head:
+  TERM_CODE SUBJECT_ID_SORT HIGH_ENROLLMENT
+0    2016FA        HAA.6904               N
+1    2013FA        HAA.8327               N
+2    2016FA        HAA.5771               N
+3    2013FA        HAA.3990               N
+4    2016FA        HAA.4368               N
+
+Gold Enrollment Data Info:
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 362414 entries, 0 to 362413
+Data columns (total 3 columns):
+ #   Column           Non-Null Count   Dtype 
+---  ------           --------------   ----- 
+ 0   TERM_CODE        362414 non-null  object
+ 1   SUBJECT_ID_SORT  362414 non-null  object
+ 2   HIGH_ENROLLMENT  362414 non-null  object
+dtypes: object(3)
+memory usage: 8.3+ MB
+
+Training data shape: (344061, 3)
+Validation data shape: (18353, 3)
+
+Macro F1 Score on validation set (using latest year 2018 for validation): 0.8129332476057602
+
+Predicting on actual test data:
+Traceback (most recent call last):
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/_encode.py", line 235, in _encode
+    return _map_to_integer(values, uniques)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/_encode.py", line 174, in _map_to_integer
+    return xp.asarray([table[v] for v in values], device=device(values))
+                       ~~~~~^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/_encode.py", line 167, in __missing__
+    raise KeyError(key)
+KeyError: 'HAA.1389'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/USER/BEAVER_data/enrollment_prediction.py", line 90, in <module>
+    test_predictions_df = predict_high_enrollment(test_df, model, le, features)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/BEAVER_data/enrollment_prediction.py", line 77, in predict_high_enrollment
+    df['SUBJECT_ID_SORT_ENCODED'] = label_encoder.transform(df['SUBJECT_ID_SORT']) # Use the same encoder fitted on training data
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/preprocessing/_label.py", line 134, in transform
+    return _encode(y, uniques=self.classes_)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/USER/Library/Caches/pypoetry/virtualenvs/sempipes-wI1nhv-G-py3.12/lib/python3.12/site-packages/sklearn/utils/_encode.py", line 237, in _encode
+    raise ValueError(f"y contains previously unseen labels: {e}")
+ValueError: y contains previously unseen labels: 'HAA.1389'
+
+
+
+
+
+
+Does not handle a folder with test features.

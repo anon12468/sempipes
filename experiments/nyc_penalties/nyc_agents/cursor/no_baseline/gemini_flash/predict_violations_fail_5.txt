@@ -1,0 +1,43 @@
+               X_train head:
+        num_meters  num_unique_boroughs  avg_latitude  ...  violation_BUS LANE VIOLATION  violation_FAILURE TO STOP AT RED LIGHT  violation_PHTO SCHOOL ZN SPEED VIOLATION
+61701         0.0                  0.0     40.727587  ...                         False                                   False                                     False
+40271         0.0                  0.0     40.727587  ...                         False                                   False                                     False
+22181         0.0                  0.0     40.727587  ...                         False                                   False                                     False
+44250         0.0                  0.0     40.727587  ...                         False                                   False                                     False
+45830         0.0                  0.0     40.727587  ...                         False                                   False                                     False
+
+[5 rows x 14 columns]
+X_train columns:
+ Index(['num_meters', 'num_unique_boroughs', 'avg_latitude', 'avg_longitude',
+       'violation_14-NO STANDING', 'violation_20A-NO PARKING (NON-COM)',
+       'violation_21-NO PARKING (STREET CLEAN)',
+       'violation_38-FAILURE TO DSPLAY METER REC', 'violation_40-FIRE HYDRANT',
+       'violation_70A-REG. STICKER EXPIRED (NYS)',
+       'violation_71A-INSP STICKER EXPIRED (NYS)',
+       'violation_BUS LANE VIOLATION',
+       'violation_FAILURE TO STOP AT RED LIGHT',
+       'violation_PHTO SCHOOL ZN SPEED VIOLATION'],
+      dtype='object')
+Validation RMSE: 1216.082521117514
+Traceback (most recent call last):
+  File "nyc_open_data/predict_violations.py", line 139, in <module>
+    main()
+    ~~~~^^
+  File "nyc_open_data/predict_violations.py", line 101, in main
+    df_test.columns = ['street_name', 'violation_type'] # Assuming violation_count is optional in test
+    ^^^^^^^^^^^^^^^
+  File "miniconda3/lib/python3.13/site-packages/pandas/core/generic.py", line 6335, in __setattr__
+    return object.__setattr__(self, name, value)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/properties.pyx", line 69, in pandas._libs.properties.AxisProperty.__set__
+  File "miniconda3/lib/python3.13/site-packages/pandas/core/generic.py", line 817, in _set_axis
+    self._mgr.set_axis(axis, labels)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "miniconda3/lib/python3.13/site-packages/pandas/core/internals/managers.py", line 238, in set_axis
+    self._validate_set_axis(axis, new_labels)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "miniconda3/lib/python3.13/site-packages/pandas/core/internals/base.py", line 98, in _validate_set_axis
+    raise ValueError(
+    ...<2 lines>...
+    )
+ValueError: Length mismatch: Expected axis has 3 elements, new values have 2 elements
