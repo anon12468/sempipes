@@ -5,8 +5,8 @@ description = "Semantic data operators for ML pipelines"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 authors = [
-    {name = "X", email = "x"},
-    {name = "Y", email = "y"}
+    {name = "X"},
+    {name = "Y"}
 ]
 dynamic = ["dependencies"]
 

@@ -673,21 +673,9 @@ def rmse(a, b) -> float:
     return float(np.sqrt(np.mean((np.asarray(a, float) - np.asarray(b, float)) ** 2)))
 
 
-def resolve_llm_name(alias_or_name: str) -> str:
-    """Map short experiment aliases to LiteLLM model names."""
-    aliases = {
-        "gemini": "gemini/gemini-2.5-flash",
-        "gemini_flash": "gemini/gemini-2.5-flash",
-        "gemini_pro": "gemini/gemini-2.5-pro",
-        "gemini-pro": "gemini/gemini-2.5-pro",
-        "pro": "gemini/gemini-2.5-pro",
-    }
-    return aliases.get(alias_or_name, alias_or_name)
-
-
 def configure_llm(alias_or_name: str, temperature: float) -> sempipes.LLM:
     """Configure SemPipes code generation and return the selected LLM."""
-    llm = sempipes.LLM(name=resolve_llm_name(alias_or_name), parameters={"temperature": temperature})
+    llm = sempipes.LLM(name=alias_or_name, parameters={"temperature": temperature})
     sempipes.update_config(llm_for_code_generation=llm)
     return llm
 
@@ -695,7 +683,7 @@ def configure_llm(alias_or_name: str, temperature: float) -> sempipes.LLM:
 def main() -> None:
     parser = argparse.ArgumentParser(description="NYC penalties SemPipes pipeline")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for the fallback regressor")
-    parser.add_argument("--llm", default="gemini", help="LLM alias or LiteLLM model name")
+    parser.add_argument("--llm", default="gemini/gemini-2.5-flash", help="LiteLLM model name")
     parser.add_argument("--temperature", type=float, default=0.0, help="LLM temperature for code generation")
     args = parser.parse_args()
 

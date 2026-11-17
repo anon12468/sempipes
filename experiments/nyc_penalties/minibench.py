@@ -7,7 +7,7 @@ import numpy as np
 
 import sempipes
 from experiments.nyc_penalties.nyc_pipeline import NYCPenaltiesPipeline
-from experiments.nyc_penalties.sempipes import ENABLE_OPTIMIZED_SEMGEN, OPERATOR_NAMES, resolve_llm_name
+from experiments.nyc_penalties.sempipes import ENABLE_OPTIMIZED_SEMGEN, OPERATOR_NAMES
 from experiments.optimize_multiple import Setup
 from sempipes.logging import get_logger
 from sempipes.optimisers import MonteCarloTreeSearch
@@ -25,7 +25,7 @@ def main() -> None:
         print(
             "Usage: minibench nyc_penalties <model> <search> <seed> <operator_selection_strategy> "
             "[exploration_param]\n"
-            "  model: gemini | gemini_pro | any LiteLLM model name\n"
+            "  model: LiteLLM model name, e.g. gemini/gemini-2.5-flash, gemini/gemini-3.8-flash, openai/gpt-5.6-sol\n"
             "  search: mct_search\n"
             "  operator_selection_strategy: round_robin | ucb | epsilon_greedy | ...",
             file=sys.stderr,
@@ -54,7 +54,7 @@ def main() -> None:
         sys.exit(1)
 
     llm = sempipes.LLM(
-        name=resolve_llm_name(model_name),
+        name=model_name,
         parameters={"temperature": 1.0},
     )
     sempipes.update_config(llm_for_code_generation=llm)

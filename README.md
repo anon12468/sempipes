@@ -65,36 +65,55 @@ SemPipes is a research project to extend Python-based machine learning pipelines
 
 ---
 
-### §5.3 Limitations of agentic pipeline generation (Table 3)
+### §5.3 Limitations of agentic pipeline generation (Tables 3 and 4)
+
+For each task, the `*_agents/` folder holds the agents' generated solutions and logs, with one subfolder per agent (`aide/`, `claude/`, `cursor/`, `mle-star/`, `mlzero/`, `swe/`). It also holds the task description that every agent received (`goal.txt`).
 
 #### Blocking for entity resolution (SIGMOD)
 
 - Task code: [experiments/sigmod/](experiments/sigmod/)
 - SemPipes: [rutgers/execute_sempipes_medium.py](experiments/sigmod/rutgers/execute_sempipes_medium.py), [execute_sempipes_medium_optimized.py](experiments/sigmod/rutgers/execute_sempipes_medium_optimized.py); contest baseline: [baseline/](experiments/sigmod/baseline/)
-- Example agent artifacts: [sigmod_agents/](experiments/sigmod/sigmod_agents/)
+- Agent runs: [sigmod_agents/](experiments/sigmod/sigmod_agents/)
 
 #### High enrollment prediction (BEAVER)
 
 - Task code: [experiments/beaver_enrollment/](experiments/beaver_enrollment/)
 - Baseline: [baseline.py](experiments/beaver_enrollment/baseline.py)
 - SemPipes: [pipeline.py](experiments/beaver_enrollment/pipeline.py), [enrollment_pipeline.py](experiments/beaver_enrollment/enrollment_pipeline.py); [trajectories.zip](experiments/beaver_enrollment/trajectories.zip)
-- Example agent artifacts: [beaver_agents/](experiments/beaver_enrollment/beaver_agents/)
+- Agent runs: [beaver_agents/](experiments/beaver_enrollment/beaver_agents/)
 
 #### Parking violation prediction (NYC)
 
 - Task code: [experiments/nyc_penalties/](experiments/nyc_penalties/)
 - Baseline: [baseline.py](experiments/nyc_penalties/baseline.py)
 - SemPipes: [sempipes.py](experiments/nyc_penalties/sempipes.py), [nyc_pipeline.py](experiments/nyc_penalties/nyc_pipeline.py); [trajectories.zip](experiments/nyc_penalties/trajectories.zip)
-- Example agent artifacts: [nyc_agents/](experiments/nyc_penalties/nyc_agents/)
+- Agent runs: [nyc_agents/](experiments/nyc_penalties/nyc_agents/)
+
+#### Ablation: Cursor with and without baseline code (Table 4)
+
+The Cursor runs are split first by setting, then by backing LLM:
+- `gemini_flash`: Gemini-2.5-Flash
+- `gemini_pro`: Gemini-2.5-Pro (only without baseline)
+- `gemini_3.8_flash`: Gemini-3.8-Flash
+- `gpt-5.6-sol`: GPT-5.6-Sol
+
+The Cursor columns of Table 3 are the `gemini_flash` and `gemini_pro` runs without baseline.
+
+| Task | Cursor w/o baseline | Cursor w/ baseline | Baseline code given to Cursor |
+|---|---|---|---|
+| SIGMOD | [no_baseline/](experiments/sigmod/sigmod_agents/cursor/no_baseline/) | [baseline/](experiments/sigmod/sigmod_agents/cursor/baseline/) | [rutgers/execute.py](experiments/sigmod/rutgers/execute.py) |
+| BEAVER | [no_baseline/](experiments/beaver_enrollment/beaver_agents/cursor/no_baseline/) | [baseline/](experiments/beaver_enrollment/beaver_agents/cursor/baseline/) | [baseline.py](experiments/beaver_enrollment/baseline.py) |
+| NYC | [no_baseline/](experiments/nyc_penalties/nyc_agents/cursor/no_baseline/) | [baseline/](experiments/nyc_penalties/nyc_agents/cursor/baseline/) | [baseline.py](experiments/nyc_penalties/baseline.py) |
 
 ---
 
-### §5.4 Comparison to specialized approaches (Table 4, Figure 6)
+### §5.4 Comparison to specialized approaches (Table 5, Figure 6)
 
-#### Feature generation vs CAAFE (Table 4)
+#### Feature generation vs CAAFE and AutoGluon (Table 5)
 
 - Folder: [experiments/caafe/](experiments/caafe/)
 - CAAFE baseline: [caafe.py](experiments/caafe/caafe.py)
+- AutoGluon baseline (`AutoMLPipelineFeatureGenerator` + `ArithmeticFeatureGenerator`): [autogluon_tracked.py](experiments/caafe/autogluon_tracked.py) (random forest), [autogluon_tabpfn_tracked.py](experiments/caafe/autogluon_tabpfn_tracked.py) (TabPFN)
 - SemPipes: [sempipes.py](experiments/caafe/sempipes.py), [sempipes_tabpfn.py](experiments/caafe/sempipes_tabpfn.py)
 - Datasets / generated code: [data/](experiments/caafe/data/), [sempipes/](experiments/caafe/sempipes/)
 
@@ -106,7 +125,7 @@ SemPipes is a research project to extend Python-based machine learning pipelines
 
 ---
 
-### §5.5 Impact of instruction quality (Table 5)
+### §5.5 Impact of instruction quality (Table 6)
 
 - Folder: [experiments/prompt_levels/](experiments/prompt_levels/)
   - House (`kaggle-house-a`): [house/](experiments/prompt_levels/house/)
@@ -116,14 +135,43 @@ SemPipes is a research project to extend Python-based machine learning pipelines
 
 ---
 
-### §5.6 Benefits over global program synthesis
+### §5.6 Sensitivity to the number of prompt examples and data split sizes (Figures 7 and 8)
+
+Both experiments use the `kaggle-house-a` (`house`), `kaggle-movie-b` (`tmdb`) and `skrub-midwest` (`midwest`) pipelines.
+
+#### Number of prompt examples (Figure 7)
+
+- Folder: [experiments/prompt_samples/](experiments/prompt_samples/)
+- Runner: [run.py](experiments/prompt_samples/run.py) (sets the number of examples with `--n-prompt-samples`)
+- Pipelines: [house_pipeline.py](experiments/prompt_samples/house_pipeline.py), [tmdb_pipeline.py](experiments/prompt_samples/tmdb_pipeline.py), [midwest_pipeline.py](experiments/prompt_samples/midwest_pipeline.py)
+
+#### Training and validation set size (Figure 8)
+
+- Folder: [experiments/split_size/](experiments/split_size/)
+- Runner: [run.py](experiments/split_size/run.py). It holds out a fixed 25% test set and runs the `train` or `val` sweep, which uses 10%, 25%, 50% and 100% of the training or the validation split.
+- Pipelines: [pipelines.py](experiments/split_size/pipelines.py)
+
+---
+
+### §5.7 Per-tuple LLM processing vs. code synthesis (Figure 9)
+
+- Folder: [experiments/size_sweep/](experiments/size_sweep/)
+- Pipelines: each runs with per-tuple LLM processing (`mode="llm"`) or with code synthesis, at three training set sizes.
+  - `kaggle-movie-b`: [tmdb_pipeline.py](experiments/size_sweep/tmdb_pipeline.py)
+  - `scrabble`: [scrabble_pipeline.py](experiments/size_sweep/scrabble_pipeline.py)
+  - `BC5CDR`: [bc5cdr_pipeline.py](experiments/size_sweep/bc5cdr_pipeline.py)
+  - `bearing`: [bearing_pipeline.py](experiments/size_sweep/bearing_pipeline.py)
+
+---
+
+### Additional experiments
+
+#### Global program synthesis (§5.6 of the initial submission)
 
 - Folder: [experiments/globalprogramsynthesis/](experiments/globalprogramsynthesis/)
 - Synthesis attempts and errors: `gemini25pro_intermediate_*.py`, `gemini25pro_intermediate_*_errors.txt`, `gemini25pro_leakage_*.py`
 
----
-
-### Additional agent failures
+#### Agent failures
 
 - [aide_failures_SIGMOD/](experiments/aide_failures_SIGMOD/)
 - [swe_failures_SIGMOD/](experiments/swe_failures_SIGMOD/)

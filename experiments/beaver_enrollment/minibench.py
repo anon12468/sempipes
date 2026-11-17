@@ -24,7 +24,7 @@ def main() -> None:
         print(
             "Usage: minibench enrollment <model> <search> <seed> <operator_selection_strategy> "
             "[exploration_param]\n"
-            "  model: gemini (gemini-2.5-flash) | gemini_pro (gemini-2.5-pro)\n"
+            "  model: LiteLLM model name, e.g. gemini/gemini-2.5-flash, gemini/gemini-3.8-flash, openai/gpt-5.6-sol\n"
             "  search: mct_search\n"
             "  operator_selection_strategy: round_robin | ucb | epsilon_greedy | ...\n"
             "  exploration_param: epsilon for epsilon_greedy, alpha for ucb (default 0.1 / 0.2)",
@@ -49,20 +49,12 @@ def main() -> None:
         elif operator_selection_strategy == "epsilon_greedy":
             epsilon = exploration_param
 
-    if model_name == "gemini":
-        llm_name = "gemini/gemini-2.5-flash"
-    elif model_name in {"gemini_pro", "gemini-pro", "pro"}:
-        llm_name = "gemini/gemini-2.5-pro"
-    else:
-        print(f"Unsupported model: {model_name} (use 'gemini' or 'gemini_pro')", file=sys.stderr)
-        sys.exit(1)
-
     if search_name != "mct_search":
         print(f"Unsupported search: {search_name} (only 'mct_search' is configured)", file=sys.stderr)
         sys.exit(1)
 
     llm = sempipes.LLM(
-        name=llm_name,
+        name=model_name,
         parameters={"temperature": 1.0},
     )
 
@@ -88,7 +80,7 @@ def main() -> None:
     logger.info(
         "Starting enrollment minibench: model=%s temp=1.0 "
         "search=mct_search steps=%s strategy=%s seed=%s ucb_alpha=%s epsilon=%s",
-        llm_name,
+        model_name,
         NUM_TRIALS,
         operator_selection_strategy,
         seed,
@@ -101,7 +93,7 @@ def main() -> None:
     print("#" * 120)
     for max_trial, chosen_trial, train_score, test_score in scores_over_time:
         line = (
-            f"MINIBENCH_RESULT> {llm_name},1.0,mct_search,enrollment,"
+            f"MINIBENCH_RESULT> {model_name},1.0,mct_search,enrollment,"
             f"{seed},{max_trial},{chosen_trial},{train_score},{test_score}"
         )
         print(line)

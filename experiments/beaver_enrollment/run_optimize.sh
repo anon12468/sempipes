@@ -10,7 +10,8 @@ LOG_DIR="experiments/beaver_enrollment/logs"
 mkdir -p "$LOG_DIR"
 
 SEEDS="${SEEDS:-0 1 2 3 4}"
-MODEL="${MODEL:-gemini}"
+MODEL="${MODEL:-gemini/gemini-2.5-flash}"  # LiteLLM model name
+MODEL_TAG="${MODEL//\//_}"  # "/" is not allowed in log file names
 STRATEGY="${STRATEGY:-epsilon_greedy}"
 EXPLORATION_PARAM="${EXPLORATION_PARAM:-0.5}"
 
@@ -23,7 +24,7 @@ else
 fi
 
 for seed in $SEEDS; do
-  log="$LOG_DIR/enrollment_${MODEL}_mct_${STRATEGY_TAG}_${seed}.log"
+  log="$LOG_DIR/enrollment_${MODEL_TAG}_mct_${STRATEGY_TAG}_${seed}.log"
   echo "Starting optimize seed=$seed model=$MODEL strategy=$STRATEGY exploration=$EXPLORATION_PARAM -> $log"
   nohup poetry run python -u -m experiments.beaver_enrollment.minibench \
     enrollment "$MODEL" mct_search "$seed" "$STRATEGY" "$EXPLORATION_PARAM" \
@@ -31,4 +32,4 @@ for seed in $SEEDS; do
 done
 
 echo "Launched $(echo $SEEDS | wc -w) optimization jobs (36 MCTS steps each)."
-echo "  tail -f $LOG_DIR/enrollment_${MODEL}_mct_${STRATEGY_TAG}_*.log"
+echo "  tail -f $LOG_DIR/enrollment_${MODEL_TAG}_mct_${STRATEGY_TAG}_*.log"
